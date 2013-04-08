@@ -13,11 +13,18 @@ object BuildSettings {
     org.sbtidea.SbtIdeaPlugin.defaultClassifierPolicy := false,
     org.sbtidea.SbtIdeaPlugin.commandName := "idea",
 
-    libraryDependencies += "org.scala-lang" % "scala-reflect" % "2.10.1"
+    libraryDependencies ++= Seq(
+      "org.scala-lang" % "scala-reflect" % "2.10.1",
+
+      "org.scalamock" % "scalamock-scalatest-support_2.10" % "3.0" % "test",
+
+      "org.scalamock" % "scalamock-core_2.10" % "3.0" % "test"
+    )
   )
 }
 
 object MetadbBuild extends Build {
+
   import BuildSettings._
 
 

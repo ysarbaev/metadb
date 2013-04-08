@@ -1,5 +1,7 @@
 package com.sarbaev.metadb.postgresql
 
+import com.sarbaev.metadb.utils.Sql.ResultSetIterator
+
 /**
  * User: yuri
  * Date: 4/6/13
@@ -7,6 +9,28 @@ package com.sarbaev.metadb.postgresql
  */
 object PGCatalog {
 
+  def pgTypeQuery(namespaces: Seq[Int]) = s"select oid, t.* from pg_catalog.pg_type t where t.typnamespace in (${namespaces.mkString(",")})"
+
+  def pgTypes(namespaces: Seq[Int])(implicit connection: java.sql.Connection): Seq[PGType] = {
+    val stmt = connection.prepareStatement(pgTypeQuery(namespaces))
+
+    val rs = stmt.executeQuery()
+
+    val types = rs.map {
+      r => PGType(
+        oid = r.getInt("oid"),
+        typname = r.getString("typname"),
+        typnamespace = r.getInt("typnamespace"),
+        typlen = r.getInt("typlen"),
+        typbyval = r.getInt("typbyval"),
+        typtype = r.getString("typtype").charAt(0),
+        typcategory = r.getString("typcategory").charAt(0),
+        typnotnull = r.getBoolean("typnotnull")
+      )
+    }
+
+    types.toSeq
+  }
 
   /**
    * Table "pg_catalog.pg_type"
@@ -36,7 +60,6 @@ object PGCatalog {
                     typtype: Char,
                     typcategory: Char,
                     typnotnull: Boolean)
-
 
   /*
    * Table "pg_catalog.pg_tables"
@@ -74,5 +97,9 @@ object PGCatalog {
                     proargmodes: Seq[Char],
                     proargnames: Seq[String],
                     proargdefaults: Seq[String])
+
+  def pgNamespaceQuery(namespaces: Seq[String]) = s"select oid, t.* from pg_catalog.pg_namespace where t.nspname in (${namespaces.map('\'' + _ + '\'').mkString(",")})"
+
+  case class PGNamespace(oid: Int, nspname: String)
 
 }
