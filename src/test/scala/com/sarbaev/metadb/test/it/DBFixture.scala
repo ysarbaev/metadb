@@ -18,15 +18,13 @@ trait DBFixture {
 
   implicit val connection = db.connect
 
-  val schema = createSchema
+  val schema = random
+
+  exec(s"create schema $schema;")
+
+  exec(s"set search_path = $schema;")
 
   val schemaOid = PGCatalog.namespaces(Seq(schema)).head.oid
-
-  def createSchema(implicit connection: Connection): String = {
-    val sName = random
-    exec(s"create schema $sName;")
-    sName
-  }
 
   def dropSchema = exec(s"drop schema $schema cascade;")
 

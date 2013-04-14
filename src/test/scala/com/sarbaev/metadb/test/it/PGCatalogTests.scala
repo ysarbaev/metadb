@@ -32,8 +32,8 @@ class PGCatalogTests extends FreeSpec with ShouldMatchers {
     "should retrieve types" in new DBFixture {
 
       exec(
-        s"create table $schema.table_type_1(id int, str text)",
-        s"create type $schema.enum_type_1 as enum ('a', 'b')"
+        s"create table table_type_1(id int, str text)",
+        s"create type enum_type_1 as enum ('a', 'b')"
       )
 
       val types = PGCatalog.types(Seq(schemaOid))
@@ -47,7 +47,7 @@ class PGCatalogTests extends FreeSpec with ShouldMatchers {
 
       fTypes should have size(2)
 
-    }
+    }.cleanUp
 
   }
 
