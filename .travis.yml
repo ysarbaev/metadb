@@ -4,3 +4,8 @@ scala:
 jdk:
     - oraclejdk
     - openjdk7
+
+services: postgresql
+
+before_script:
+  - psql -c 'create database metadb;' -U postgres

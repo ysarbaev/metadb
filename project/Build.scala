@@ -16,9 +16,11 @@ object BuildSettings {
     libraryDependencies ++= Seq(
       "org.scala-lang" % "scala-reflect" % "2.10.1",
 
-      "org.scalamock" % "scalamock-scalatest-support_2.10" % "3.0" % "test",
+      "org.scalamock" %% "scalamock-scalatest-support" % "3.0.1" % "test",
 
-      "org.scalamock" % "scalamock-core_2.10" % "3.0" % "test"
+      "org.scalamock" %% "scalamock-core" % "3.0.1" % "test",
+
+      "postgresql" % "postgresql" % "9.1-901.jdbc4"
     )
   )
 }

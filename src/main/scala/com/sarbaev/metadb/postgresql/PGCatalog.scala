@@ -1,6 +1,7 @@
 package com.sarbaev.metadb.postgresql
 
 import com.sarbaev.metadb.utils.Sql.ResultSetIterator
+import java.sql.{Connection, ResultSet}
 
 /**
  * User: yuri
@@ -9,28 +10,30 @@ import com.sarbaev.metadb.utils.Sql.ResultSetIterator
  */
 object PGCatalog {
 
-  def pgTypeQuery(namespaces: Seq[Int]) = s"select oid, t.* from pg_catalog.pg_type t where t.typnamespace in (${namespaces.mkString(",")})"
+  def executeQuery[T](query: String, mapper: ResultSet => T)(implicit connection: java.sql.Connection): Seq[T] = {
+    val stmt = connection.prepareStatement(query)
+    val rs = stmt.executeQuery
 
-  def pgTypes(namespaces: Seq[Int])(implicit connection: java.sql.Connection): Seq[PGType] = {
-    val stmt = connection.prepareStatement(pgTypeQuery(namespaces))
-
-    val rs = stmt.executeQuery()
-
-    val types = rs.map {
-      r => PGType(
-        oid = r.getInt("oid"),
-        typname = r.getString("typname"),
-        typnamespace = r.getInt("typnamespace"),
-        typlen = r.getInt("typlen"),
-        typbyval = r.getInt("typbyval"),
-        typtype = r.getString("typtype").charAt(0),
-        typcategory = r.getString("typcategory").charAt(0),
-        typnotnull = r.getBoolean("typnotnull")
-      )
-    }
-
-    types.toSeq
+    rs.map(mapper).toSeq
   }
+
+  def inList(values: Seq[Any]) = values.mkString("(\'", "\',\'", "\')") // a,b generates ('a','b')
+
+  def typeQuery(namespaces: Seq[Int]) = s"select oid, t.* from pg_catalog.pg_type t where t.typnamespace in (${inList(namespaces)})"
+
+  def typeMapper(set: ResultSet) =
+    PGType(
+      oid = set.getInt("oid"),
+      typname = set.getString("typname"),
+      typnamespace = set.getInt("typnamespace"),
+      typlen = set.getInt("typlen"),
+      typbyval = set.getInt("typbyval"),
+      typtype = set.getString("typtype").charAt(0),
+      typcategory = set.getString("typcategory").charAt(0),
+      typnotnull = set.getBoolean("typnotnull")
+    )
+
+  def types(namespaces: Seq[Int])(implicit connection: java.sql.Connection): Seq[PGType] = executeQuery(typeQuery(namespaces), typeMapper(_))
 
   /**
    * Table "pg_catalog.pg_type"
@@ -98,7 +101,11 @@ object PGCatalog {
                     proargnames: Seq[String],
                     proargdefaults: Seq[String])
 
-  def pgNamespaceQuery(namespaces: Seq[String]) = s"select oid, t.* from pg_catalog.pg_namespace where t.nspname in (${namespaces.map('\'' + _ + '\'').mkString(",")})"
+  def namespaceQuery(namespaces: Seq[String]) = s"select oid, t.* from pg_catalog.pg_namespace t where t.nspname in (${inList(namespaces)})"
+
+  def namespaceMapper(set: ResultSet) = PGNamespace(set.getInt("oid"), set.getString("nspname"))
+
+  def namespaces(namespaces: Seq[String])(implicit connection: Connection) = executeQuery(namespaceQuery(namespaces), namespaceMapper(_))
 
   case class PGNamespace(oid: Int, nspname: String)
 
