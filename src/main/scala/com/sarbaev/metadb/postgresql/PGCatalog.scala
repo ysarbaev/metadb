@@ -27,7 +27,7 @@ object PGCatalog {
       typname = set.getString("typname"),
       typnamespace = set.getInt("typnamespace"),
       typlen = set.getInt("typlen"),
-      typbyval = set.getInt("typbyval"),
+      typbyval = set.getBoolean("typbyval"),
       typtype = set.getString("typtype").charAt(0),
       typcategory = set.getString("typcategory").charAt(0),
       typnotnull = set.getBoolean("typnotnull")
@@ -36,6 +36,7 @@ object PGCatalog {
   def types(namespaces: Seq[Int])(implicit connection: java.sql.Connection): Seq[PGType] = executeQuery(typeQuery(namespaces), typeMapper(_))
 
   /**
+   * <pre>
    * Table "pg_catalog.pg_type"
    * typtype is b for a base type, c for a composite type (e.g., a table's row type), d for a domain, e for an enum type, p for a pseudo-type, or r for a range type. See also typrelid and typbasetype.
    * Code	Category
@@ -54,12 +55,13 @@ object PGCatalog {
    * U	User-defined types
    * V	Bit-string types
    * X	unknown type
+   * </pre>
    */
   case class PGType(oid: Int,
                     typname: String,
                     typnamespace: Int,
                     typlen: Int,
-                    typbyval: Int,
+                    typbyval: Boolean,
                     typtype: Char,
                     typcategory: Char,
                     typnotnull: Boolean)
