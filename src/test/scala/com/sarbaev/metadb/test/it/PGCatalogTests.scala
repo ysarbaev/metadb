@@ -36,10 +36,7 @@ class PGCatalogTests extends FreeSpec with ShouldMatchers {
         s"create type $schema.enum_type_1 as enum ('a', 'b')"
       )
 
-
-      val schemaId = PGCatalog.namespaces(Seq(schema)).head.oid
-
-      val types = PGCatalog.types(Seq(schemaId))
+      val types = PGCatalog.types(Seq(schemaOid))
 
       types should have size(4) //think about array types
 

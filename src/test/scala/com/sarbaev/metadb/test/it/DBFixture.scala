@@ -3,6 +3,7 @@ package com.sarbaev.metadb.test.it
 import com.sarbaev.metadb.DB
 import java.sql.Connection
 import java.util.UUID
+import com.sarbaev.metadb.postgresql.PGCatalog
 
 /**
  * User: yuri
@@ -18,6 +19,8 @@ trait DBFixture {
   implicit val connection = db.connect
 
   val schema = createSchema
+
+  val schemaOid = PGCatalog.namespaces(Seq(schema)).head.oid
 
   def createSchema(implicit connection: Connection): String = {
     val sName = random
