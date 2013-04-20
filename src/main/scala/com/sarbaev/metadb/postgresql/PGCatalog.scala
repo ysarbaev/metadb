@@ -104,6 +104,7 @@ object PGCatalog {
     proargdefaults = Nil
   )
 
+  def procs(namespaces: Seq[Int])(implicit connection: Connection): Seq[PGProc] = executeQuery(procQuery(namespaces), procMapper)
   /**
    * Table "pg_catalog.pg_proc"
    */
@@ -125,7 +126,7 @@ object PGCatalog {
 
   def namespaceMapper(set: ResultSet) = PGNamespace(set.getInt("oid"), set.getString("nspname"))
 
-  def namespaces(namespaces: Seq[String])(implicit connection: Connection) = executeQuery(namespaceQuery(namespaces), namespaceMapper(_))
+  def namespaces(namespaces: Seq[String])(implicit connection: Connection) = executeQuery(namespaceQuery(namespaces), namespaceMapper)
 
   case class PGNamespace(oid: Int, nspname: String)
 

@@ -49,6 +49,12 @@ class PGCatalogTests extends FreeSpec with ShouldMatchers {
 
     }.cleanUp
 
+    "should retrieve procedures" in new DBFixture {
+
+      pending
+
+    }
+
   }
 
 
