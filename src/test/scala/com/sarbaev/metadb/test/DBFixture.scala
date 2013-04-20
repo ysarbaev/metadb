@@ -1,4 +1,4 @@
-package com.sarbaev.metadb.test.it
+package com.sarbaev.metadb.test
 
 import com.sarbaev.metadb.DB
 import java.sql.Connection

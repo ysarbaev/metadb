@@ -1,4 +1,4 @@
-package com.sarbaev.metadb.test.it
+package com.sarbaev.metadb.test
 
 import org.scalatest.FreeSpec
 import org.scalatest.matchers.ShouldMatchers

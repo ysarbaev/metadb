@@ -86,12 +86,30 @@ object PGCatalog {
                      relhaspkey: Boolean,
                      relhassubclass: Boolean)
 
+  def procQuery(namespaces: Seq[Int]) = s"select oid, t.* from pg_catalog.pg_namespace t where t.pronamespace in (${inList(namespaces)}})"
+
+  def procMapper(set: ResultSet) = PGProc(
+    oid = set.getInt("oid"),
+    proname = set.getString("proname"),
+    pronamespace = set.getInt("pronamespace"),
+    provariadic = set.getInt("provariadic"),
+    proretset = set.getBoolean("proretset"),
+    pronargs = set.getInt("pronargs"),
+    pronargdefaults = set.getInt("pronargdefaults"),
+    prorettype = set.getInt("prorettype"),
+    proargtypes = Nil,
+    proallargtypes = Nil,
+    proargmodes = Nil,
+    proargnames = Nil,
+    proargdefaults = Nil
+  )
+
   /**
    * Table "pg_catalog.pg_proc"
    */
   case class PGProc(oid: Int,
                     proname: String,
-                    pronamespace: String,
+                    pronamespace: Int,
                     provariadic: Int,
                     proretset: Boolean,
                     pronargs: Int,

@@ -1,4 +1,4 @@
-package com.sarbaev.metadb.test.it
+package com.sarbaev.metadb.test
 
 import java.sql.Connection
 import java.util.UUID
