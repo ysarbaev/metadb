@@ -1,6 +1,7 @@
 package com.sarbaev.metadb.postgresql
 
 import com.sarbaev.metadb.utils.Sql.ResultSetIterator
+import com.sarbaev.metadb.utils.Sql.RichResultSet
 import java.sql.{Connection, ResultSet}
 
 /**
@@ -86,7 +87,10 @@ object PGCatalog {
                      relhaspkey: Boolean,
                      relhassubclass: Boolean)
 
-  def procQuery(namespaces: Seq[Int]) = s"select oid, t.* from pg_catalog.pg_namespace t where t.pronamespace in (${inList(namespaces)}})"
+  def procQuery(namespaces: Seq[Int]) = s"""
+    select oid,
+      t.proargtypes::integer[] as argtypes,
+      t.* from pg_catalog.pg_proc t where t.pronamespace in (${inList(namespaces)})"""
 
   def procMapper(set: ResultSet) = PGProc(
     oid = set.getInt("oid"),
@@ -97,11 +101,11 @@ object PGCatalog {
     pronargs = set.getInt("pronargs"),
     pronargdefaults = set.getInt("pronargdefaults"),
     prorettype = set.getInt("prorettype"),
-    proargtypes = Nil,
-    proallargtypes = Nil,
-    proargmodes = Nil,
-    proargnames = Nil,
-    proargdefaults = Nil
+    proargtypes = set.getIntArray("argtypes"),
+    proallargtypes = set.getIntArray("proallargtypes"),
+    proargmodes = set.getCharArray("proargmodes"),
+    proargnames = set.getStringArray("proargnames"),
+    proargdefaults = set.getStringArray("proargdefaults")
   )
 
   def procs(namespaces: Seq[Int])(implicit connection: Connection): Seq[PGProc] = executeQuery(procQuery(namespaces), procMapper)

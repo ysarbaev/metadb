@@ -3,7 +3,6 @@ scala:
     - "2.10.1"
 jdk:
     - oraclejdk
-    - openjdk7
 
 services: postgresql
 

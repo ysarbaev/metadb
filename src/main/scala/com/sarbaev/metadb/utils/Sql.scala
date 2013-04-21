@@ -20,4 +20,38 @@ object Sql {
     }
   }
 
+
+  implicit class RichResultSet(rs: ResultSet){
+
+    def getIntArray(name: String): Seq[Int] = {
+      val arr = rs.getArray(name)
+        if(rs.wasNull()){
+          Seq()
+        }else{
+          arr.getArray.asInstanceOf[Array[Integer]].map(_.toInt).toList
+        }
+    }
+
+    def getCharArray(name: String): Seq[Char] = {
+      val arr = rs.getArray(name)
+      if(rs.wasNull()){
+        Seq()
+      }else{
+        arr.getArray.asInstanceOf[Array[Character]].map(_.toChar).toList
+      }
+    }
+
+    def getStringArray(name: String): Seq[String] = {
+      val arr = rs.getArray(name)
+      if(rs.wasNull()){
+        Seq()
+      }else{
+        arr.getArray.asInstanceOf[Array[String]].map(_.toString).toList
+      }
+    }
+
+
+
+  }
+
 }

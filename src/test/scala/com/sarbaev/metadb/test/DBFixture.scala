@@ -20,13 +20,16 @@ trait DBFixture {
 
   val schema = random
 
-  exec(s"create schema $schema;")
-
-  exec(s"set search_path = $schema;")
+  createSchema(schema)
+  setSearchPath(schema)
 
   val schemaOid = PGCatalog.namespaces(Seq(schema)).head.oid
 
-  def dropSchema = exec(s"drop schema $schema cascade;")
+  def createSchema(schema: String) = exec(s"create schema $schema;")
+
+  def setSearchPath(schema: String) = exec(s"set search_path = $schema;")
+
+  def dropSchema(schema: String) = exec(s"drop schema $schema cascade;")
 
   def random: String = "random_" + UUID.randomUUID().toString.replaceAll("-", "_")
 
@@ -40,7 +43,7 @@ trait DBFixture {
   }
 
   def cleanUp = {
-    dropSchema
+    dropSchema(schema)
     connection.close
   }
 

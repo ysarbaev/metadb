@@ -5,7 +5,6 @@ import org.scalatest.matchers.ShouldMatchers
 import java.sql.Types
 import com.sarbaev.metadb.utils.Sql.ResultSetIterator
 import org.postgresql.jdbc2.AbstractJdbc2Array
-
 /**
  * User: yuri
  * Date: 4/14/13
@@ -45,9 +44,26 @@ class ClientExampleTests extends FreeSpec with ShouldMatchers{
       val array = rs.getArray("a")
 
       array.getBaseType shouldBe Types.INTEGER
-      array.getResultSet.map(_.getInt(2)).toSeq shouldBe Seq(1,2,3)
+      array.getArray should equal(Array(1,2,3))
 
     }.cleanUp
+
+
+    "map an empty array" in new DBFixture {
+
+      val stmt = connection.prepareStatement("select '{}'::integer[0] as a")
+
+      val rs = stmt.executeQuery
+      rs.next should equal(true)
+
+      val array = rs.getArray("a")
+
+      array.getBaseType shouldBe Types.INTEGER
+      array.getArray should equal(Array())
+
+    }.cleanUp
+
+
 
   }
 
