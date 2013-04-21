@@ -105,7 +105,7 @@ object PGCatalog {
     proallargtypes = set.getIntArray("proallargtypes"),
     proargmodes = set.getCharArray("proargmodes"),
     proargnames = set.getStringArray("proargnames"),
-    proargdefaults = set.getStringArray("proargdefaults")
+    proargdefaults = Nil//set.getString("proargdefaults")
   )
 
   def procs(namespaces: Seq[Int])(implicit connection: Connection): Seq[PGProc] = executeQuery(procQuery(namespaces), procMapper)

@@ -50,6 +50,9 @@ class PGCatalogTests extends FreeSpec with ShouldMatchers {
 
     }.cleanUp
 
+    /**
+     * -1 means undetermined
+     */
     "should match procedures" in new DBFixture {
 
       implicit class It(sql: String) {
@@ -72,13 +75,23 @@ class PGCatalogTests extends FreeSpec with ShouldMatchers {
 
         def shouldEq(expected: PGProc) = {
           val it = proc(sql)
-          it should equal((expected.copy(oid = it.oid, pronamespace = it.pronamespace)))
+          withClue(sql){
+            it shouldBe(expected.copy(oid = it.oid, pronamespace = it.pronamespace))
+          }
         }
       }
 
-      "create function f() returns int as 'select 1' language sql; " shouldEq PGProc(-1, "f", -1, 0, false, 0, 0, Oid.INT4, Nil, Nil, Nil, Nil, Nil)
-      "create function f() returns setof int as 'select 1' language sql; " shouldEq PGProc(-1, "f", -1, 0, true, 0, 0, Oid.INT4, Nil, Nil, Nil, Nil, Nil)
-      "create function f(a int, b int) returns setof int as 'select 1' language sql; " shouldEq PGProc(-1, "f", -1, 0, true, 2, 0, Oid.INT4, Seq(Oid.INT4, Oid.INT4), Nil, Nil, Seq("a", "b"), Nil)
+      "create function f() returns int as 'select 1' language sql; " shouldEq
+        PGProc(-1, "f", -1, 0, false, 0, 0, Oid.INT4, Nil, Nil, Nil, Nil, Nil)
+
+      "create function f() returns setof int as 'select 1' language sql; " shouldEq
+        PGProc(-1, "f", -1, 0, true, 0, 0, Oid.INT4, Nil, Nil, Nil, Nil, Nil)
+
+      "create function f(a int, b int) returns int as 'select 1' language sql; " shouldEq
+        PGProc(-1, "f", -1, 0, false, 2, 0, Oid.INT4, Seq(Oid.INT4, Oid.INT4), Nil, Nil, Seq("a", "b"), Nil)
+
+      "create function f(a int, b int default 42) returns int as 'select 1' language sql" shouldEq
+        PGProc(-1, "f", -1, 0, false, 2, 1, Oid.INT4, Seq(Oid.INT4, Oid.INT4), Nil, Nil, Seq("a", "b"), Nil)
 
     }.cleanUp
 
