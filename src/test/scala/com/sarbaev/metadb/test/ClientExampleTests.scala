@@ -37,12 +37,7 @@ class ClientExampleTests extends FreeSpec with ShouldMatchers{
 
     "map an array of int" in new DBFixture {
 
-      exec(
-        "create table t (a integer[3]);",
-        "insert into t(a) values('{1,2,3}');"
-      )
-
-      val stmt = connection.prepareStatement("select a from t")
+      val stmt = connection.prepareStatement("select '{1,2,3}'::integer[3] as a")
 
       val rs = stmt.executeQuery
       rs.next should equal(true)
