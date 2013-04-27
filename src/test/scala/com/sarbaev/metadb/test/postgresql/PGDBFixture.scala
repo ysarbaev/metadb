@@ -16,6 +16,6 @@ trait PGDBFixture extends DBFixture {
 
   override def password: String = "postgres"
 
-  override def user: String = ""
+  override def user: String = "postgres"
 
 }
