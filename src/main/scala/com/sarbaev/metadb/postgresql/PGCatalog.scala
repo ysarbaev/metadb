@@ -105,10 +105,50 @@ object PGCatalog {
     proallargtypes = set.getIntArray("proallargtypes"),
     proargmodes = set.getCharArray("proargmodes"),
     proargnames = set.getStringArray("proargnames"),
-    proargdefaults = Nil//set.getString("proargdefaults")
+    proargdefaults = parseProcDefaultParameters(set.getString("proargdefaults"))
   )
 
+  /**
+   * ({CONST :consttype 23 :consttypmod -1 :constcollid 0 :constlen 4 :constbyval true :constisnull true :location 35 :constvalue <>}
+   * {CONST :consttype 23 :consttypmod -1 :constcollid 0 :constlen 4 :constbyval true :constisnull false :location 55 :constvalue 4 [ 0 1 0 0 0 0 0 0 ]})
+   */
+  case class PGProcDefaultParameter(consttype: Int, consttypmod: Int, constcollid: Int, constlen: Int, constbyval: Boolean, constisnull: Boolean, location: Int, constvalue: Any)
+
+  def parseProcDefaultParameters0(params: List[String]): List[PGProcDefaultParameter] = params match {
+    case Nil => Nil
+    case "consttype" :: consttype :: "consttypmod" :: consttypmod :: "constcollid" :: constcollid :: "constlen" :: constlen :: "constbyval" :: constbyval :: "constisnull" :: constisnull :: "location" :: location :: "constvalue" :: constvalue :: tail =>
+      PGProcDefaultParameter(
+        consttype.toInt,
+        consttypmod.toInt,
+        constcollid.toInt,
+        constlen.toInt,
+        constbyval.toBoolean,
+        constisnull.toBoolean,
+        location.toInt,
+        None
+      ) :: parseProcDefaultParameters0(tail)
+    case _ => Nil
+  }
+
+  def parseProcDefaultParameters(params: String): Seq[PGProcDefaultParameter] = {
+    if (params == null) Nil
+    else {
+      val p = params.
+        replaceAll("[{,},(,)]", "").
+        replace("CONST", "").
+        split(":").
+        drop(1).
+        map(_.trim).
+        flatMap(_.split("\\s", 2)).
+        toList
+
+      parseProcDefaultParameters0(p)
+    }
+
+  }
+
   def procs(namespaces: Seq[Int])(implicit connection: Connection): Seq[PGProc] = executeQuery(procQuery(namespaces), procMapper)
+
   /**
    * Table "pg_catalog.pg_proc"
    */
@@ -124,7 +164,7 @@ object PGCatalog {
                     proallargtypes: Seq[Int],
                     proargmodes: Seq[Char],
                     proargnames: Seq[String],
-                    proargdefaults: Seq[String])
+                    proargdefaults: Seq[PGProcDefaultParameter])
 
   def namespaceQuery(namespaces: Seq[String]) = s"select oid, t.* from pg_catalog.pg_namespace t where t.nspname in (${inList(namespaces)})"
 
