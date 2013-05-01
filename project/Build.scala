@@ -2,13 +2,16 @@ import sbt._
 import Keys._
 
 object BuildSettings {
+  val buildScalaVersion = "2.11.0-SNAPSHOT"
+
   val buildSettings = Defaults.defaultSettings ++
     org.sbtidea.SbtIdeaPlugin.ideaSettings ++
     Seq(
       organization := "com.sarbaev",
       version := "0.1",
       scalacOptions ++= Seq(),
-      scalaVersion := "2.10.1",
+      scalaVersion := buildScalaVersion,
+      scalaOrganization := "org.scala-lang.macro-paradise",
 
       org.sbtidea.SbtIdeaPlugin.addGeneratedClasses := true,
       org.sbtidea.SbtIdeaPlugin.includeScalaFacet := true,
@@ -18,13 +21,7 @@ object BuildSettings {
       scalacOptions ++= Seq("-feature"),
 
       libraryDependencies ++= Seq(
-        "org.scala-lang" % "scala-reflect" % "2.10.1",
-
-        "org.scalamock" %% "scalamock-scalatest-support" % "3.0.1" % "test",
-
-        "org.scalamock" %% "scalamock-core" % "3.0.1" % "test",
-
-        "postgresql" % "postgresql" % "9.1-901.jdbc4"
+        "org.scala-lang.macro-paradise" % "scala-reflect" % buildScalaVersion
       )
     )
 }
