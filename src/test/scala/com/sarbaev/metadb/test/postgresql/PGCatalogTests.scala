@@ -108,7 +108,7 @@ class PGCatalogTests extends FreeSpec with ShouldMatchers {
 
         val classes = PGCatalog.PGClass.list(Seq(schemaOid))
 
-        classes should have size(2)
+        classes should have size (2)
 
       }
     }
@@ -119,8 +119,19 @@ class PGCatalogTests extends FreeSpec with ShouldMatchers {
 
         val attributes = PGCatalog.PGAttribute.list(Seq(schemaOid))
 
-        attributes should have size(4)
+        attributes should have size (4)
 
+      }
+    }
+
+    "should retrieve default attributes" in new PGSchemaFixture {
+      closeAfter {
+
+        exec("create table t (a int default 42, b text default 'hello')")
+
+        val defaultAttributes = PGCatalog.PGAttributeDefault.list(Seq(schemaOid))
+
+        defaultAttributes should have size(2)
       }
     }
 
@@ -134,9 +145,9 @@ class PGCatalogTests extends FreeSpec with ShouldMatchers {
       val actual = PGCatalog.parseDefault(params)
 
       val expected = Seq(
-        PGDefaultValue(23,-1,0,4,true, false, 33, None),
-        PGDefaultValue(25,-1,100,-1,false, false, 52, None),
-        PGDefaultValue(25,-1,100,-1,false, true, 71, None)
+        PGDefaultValue(23, -1, 0, 4, true, false, 33, None),
+        PGDefaultValue(25, -1, 100, -1, false, false, 52, None),
+        PGDefaultValue(25, -1, 100, -1, false, true, 71, None)
       )
 
       actual shouldBe expected
