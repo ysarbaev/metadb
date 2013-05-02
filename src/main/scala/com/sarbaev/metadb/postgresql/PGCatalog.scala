@@ -8,7 +8,7 @@ import com.sarbaev.metadb.model.Namespace
 /**
  * User: yuri
  * Date: 4/6/13
- * Time: 9:38 PM 
+ * Time: 9:38 PM
  */
 object PGCatalog {
 
@@ -20,6 +20,8 @@ object PGCatalog {
   }
 
   def inList(values: Iterable[Any]) = values.mkString("(\'", "\',\'", "\')")
+
+  def null2option[T](v : T): Option[T] = if (v == null) None else Some(v)
 
   // a,b generates ('a','b')
 
@@ -173,8 +175,26 @@ object PGCatalog {
     proallargtypes = set.getIntArray("proallargtypes"),
     proargmodes = set.getCharArray("proargmodes"),
     proargnames = set.getStringArray("proargnames"),
-    proargdefaults = parseDefault(set str "proargdefaults")
+    proargdefaults = null2option(set str "proargdefaults") match {
+      case Some(v) => parseDefault(v)
+      case _ => Nil
+    }
   )
+
+
+  case class PGAttributeDefault(adrelid: Int, adnum: Int, value: PGDefaultValue)
+
+  object PGAttributeDefault {
+
+    def query(namespaces: Iterable[Int]) = s"select a.* from pg_catalog.pg_attrdef a, pg_catalog.pg_class c where a.adrelid = c.oid and c.relnamespace in ( ${inList(namespaces)} )"
+
+    def mapper(set: RichResultSet) = PGAttributeDefault(
+      adrelid = set int "adrelid",
+      adnum = set int "adnum",
+      value = parseDefault(set str "adbin").head
+    )
+  }
+
 
   /**
    * ({CONST :consttype 23 :consttypmod -1 :constcollid 0 :constlen 4 :constbyval true :constisnull true :location 35 :constvalue <>}
@@ -182,37 +202,29 @@ object PGCatalog {
    */
   case class PGDefaultValue(consttype: Int, consttypmod: Int, constcollid: Int, constlen: Int, constbyval: Boolean, constisnull: Boolean, location: Int, constvalue: Any)
 
-  def parseDefault0(params: List[String]): List[PGDefaultValue] = params match {
-    case Nil => Nil
-    case "consttype" :: consttype :: "consttypmod" :: consttypmod :: "constcollid" :: constcollid :: "constlen" :: constlen :: "constbyval" :: constbyval :: "constisnull" :: constisnull :: "location" :: location :: "constvalue" :: constvalue :: tail =>
-      PGDefaultValue(
-        consttype.toInt,
-        consttypmod.toInt,
-        constcollid.toInt,
-        constlen.toInt,
-        constbyval.toBoolean,
-        constisnull.toBoolean,
-        location.toInt,
-        None
-      ) :: parseDefault0(tail)
-    case _ => Nil
+  def parseDefault0(defaultValue: String): PGDefaultValue = {
+    val list = defaultValue.split(':').flatMap(_.split("\\s",2)).map(_.trim).filter(_.length > 0).toList
+    list match
+    {
+      case "consttype" :: consttype :: "consttypmod" :: consttypmod :: "constcollid" :: constcollid :: "constlen" :: constlen :: "constbyval" :: constbyval :: "constisnull" :: constisnull :: "location" :: location :: "constvalue" :: constvalue =>
+        PGDefaultValue(
+          consttype.toInt,
+          consttypmod.toInt,
+          constcollid.toInt,
+          constlen.toInt,
+          constbyval.toBoolean,
+          constisnull.toBoolean,
+          location.toInt,
+          None
+        )
+      case _ => throw new IllegalArgumentException(s"Failed to parse : $defaultValue")
+    }
   }
 
+
   def parseDefault(params: String): Seq[PGDefaultValue] = {
-    if (params == null) Nil
-    else {
-      val p = params.
-        replaceAll("[{,},(,)]", "").
-        replace("CONST", "").
-        split(":").
-        drop(1).
-        map(_.trim).
-        flatMap(_.split("\\s", 2)).
-        toList
-
-      parseDefault0(p)
-    }
-
+      val list = params.replaceAll("[{,},(,)]", "").split("CONST").map(_.trim).filter(_.length > 0)
+      list.map(parseDefault0)
   }
 
   def procs(namespaces: Seq[Int])(implicit connection: Connection): Seq[PGProc] = executeQuery(procQuery(namespaces), procMapper)
