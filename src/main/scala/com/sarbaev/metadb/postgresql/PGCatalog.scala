@@ -3,7 +3,7 @@ package com.sarbaev.metadb.postgresql
 import com.sarbaev.metadb.utils.Sql.ResultSetIterator
 import com.sarbaev.metadb.utils.Sql.RichResultSet
 import java.sql.{Connection, ResultSet}
-import com.sarbaev.metadb.model.Namespace
+import com.sarbaev.metadb.model.{Column, Table, Relation, Namespace}
 
 /**
  * User: yuri
@@ -19,14 +19,17 @@ object PGCatalog {
   trait PGCatalogEx[T, K] {
     def query(namespaces: Iterable[K]): String
 
-    def mapper(se: RichResultSet): T
+    def mapper(set: RichResultSet): T
 
-    def list(namespaces: Iterable[K])(implicit connection: java.sql.Connection): Seq[T] = {
-      val stmt = connection.prepareStatement(query(namespaces))
+
+    def exec(query: String, mapper: RichResultSet => T)(implicit connection: java.sql.Connection): Seq[T] = {
+      val stmt = connection.prepareStatement(query)
       val rs = stmt.executeQuery
 
       rs.map(mapper(_)).toSeq
     }
+
+    def list(namespaces: Iterable[K])(implicit connection: java.sql.Connection): Seq[T] = exec(query(namespaces), mapper)
   }
 
   /**
@@ -148,6 +151,22 @@ object PGCatalog {
 
   }
 
+  case class PGConstraint(conname: String, connamespace: Int, contype: Char, conrelid: Int, conkey: Seq[Int])
+
+  object PGConstraint extends PGCatalogEx[PGConstraint, Int] {
+    def mapper(set: RichResultSet): PGConstraint = PGConstraint(
+      conname = set str "conname",
+      connamespace = set int "connamespace",
+      contype = set char "contype",
+      conrelid = set int "conrelid",
+      conkey = set intArr "conkey"
+    )
+
+    def query(namespaces: Iterable[Int]): String = s"select * from pg_catalog.pg_constraint where c.connamespace in (${inList(namespaces)})"
+    def primaryKeysQuery(namespaces: Iterable[Int]): String = s"select * from pg_catalog.pg_constraint where connamespace in (${inList(namespaces)}) and contype = 'p'"
+    def primaryKeys(namespaces: Iterable[Int])(implicit connection: Connection): Seq[PGConstraint] = exec(primaryKeysQuery(namespaces), mapper)
+  }
+
   /**
    * Table "pg_catalog.pg_proc"
    */
@@ -181,10 +200,10 @@ object PGCatalog {
       pronargs = set int "pronargs",
       pronargdefaults = set int "pronargdefaults",
       prorettype = set int "prorettype",
-      proargtypes = set.getIntArray("argtypes"),
-      proallargtypes = set.getIntArray("proallargtypes"),
-      proargmodes = set.getCharArray("proargmodes"),
-      proargnames = set.getStringArray("proargnames"),
+      proargtypes = set intArr "argtypes",
+      proallargtypes = set intArr "proallargtypes",
+      proargmodes = set charArr "proargmodes",
+      proargnames = set strArr "proargnames",
       proargdefaults = Nil
     )
   }
@@ -239,15 +258,51 @@ object PGCatalog {
 
     def query(namespaces: Iterable[String]) = s"select oid, t.* from pg_catalog.pg_namespace t where t.nspname in (${inList(namespaces)})"
 
-    def mapper(set: RichResultSet) = PGNamespace(set int ("oid"), set str ("nspname"))
+    def mapper(set: RichResultSet) = PGNamespace(set int "oid", set str "nspname")
 
   }
 
-  def toModel(namespaces: Seq[PGNamespace], types: Seq[PGType], procs: Seq[PGProc]): Seq[Namespace] = {
 
-    val namespaceOid = namespaces.groupBy(_.oid).map(e => e._1 -> e._2.head)
-    val typesOid = types.groupBy(_.oid).map(e => e._1 -> e._2.head)
-    val procsOid = procs.groupBy(_.oid).map(e => e._1 -> e._2.head)
+  def toModel(namespaces: Seq[PGNamespace],
+              types: Seq[PGType],
+              classes: Seq[PGClass],
+              attributes: Seq[PGAttribute],
+              procs: Seq[PGProc],
+              constraints: Seq[PGConstraint]): Seq[Namespace] = {
+
+    val namespacesById = namespaces.groupBy(_.oid).map(e => e._1 -> e._2.head)
+    val typesById = types.groupBy(_.oid).map(e => e._1 -> e._2.head)
+    val classesById = classes.groupBy(_.oid).map(e => e._1 -> e._2.head)
+    val attributesByClass = attributes.groupBy(_.attrelid).map(e => e._1 -> e._2.sortBy(_.attnum))
+    val classesByNamespace = classes.groupBy(_.relnamespace)
+    val constraintsByRelations = constraints.groupBy(_.conrelid)
+
+    val result = namespaces.map { namespace =>
+
+      val relations = classesByNamespace(namespace.oid) collect {
+
+        case PGClass(relid, relname, _, reltype, reltypeof, 'r', relnatts, relhaspkey) => {
+
+          val cons = constraintsByRelations.getOrElse(relid, Nil)
+
+          val columns = attributesByClass(relid) map { attr =>
+
+            val isPk = cons.find(_.conkey.contains(attr.attnum)).isDefined
+
+            //TODO: convert type
+            Column(attr.attname, null, ! attr.attnotnull, isPk)
+          }
+
+          Relation(relname, namespace.nspname, Table, columns)
+        }
+
+        case PGClass(relid, relname, _, reltype, reltypeof, 'v', relnatts, relhaspkey) => {
+
+        }
+      }
+
+    }
+
 
     Nil
   }

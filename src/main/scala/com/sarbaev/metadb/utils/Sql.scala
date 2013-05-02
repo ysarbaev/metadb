@@ -23,7 +23,7 @@ object Sql {
 
   implicit class RichResultSet(rs: ResultSet){
 
-    def getIntArray(name: String): Seq[Int] = {
+    def intArr(name: String): Seq[Int] = {
       val arr = rs.getArray(name)
         if(rs.wasNull()){
           Seq()
@@ -32,7 +32,7 @@ object Sql {
         }
     }
 
-    def getCharArray(name: String): Seq[Char] = {
+    def charArr(name: String): Seq[Char] = {
       val arr = rs.getArray(name)
       if(rs.wasNull()){
         Seq()
@@ -41,7 +41,7 @@ object Sql {
       }
     }
 
-    def getStringArray(name: String): Seq[String] = {
+    def strArr(name: String): Seq[String] = {
       val arr = rs.getArray(name)
       if(rs.wasNull()){
         Seq()

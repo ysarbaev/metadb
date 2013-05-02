@@ -19,7 +19,7 @@ object model {
   case object OUT extends ParameterMode("OUT")
   case object INOUT extends ParameterMode("INOUT")
 
-  case class Parameter(name: Option[String], parameterType: Type, defaultValue: Option[Any], mode: ParameterMode)
+  case class Parameter(name: Option[String], parameterType: Type, hasDefaultValue: Boolean, mode: ParameterMode)
 
   case class Procedure(name: String, namespace: String, parameters: Seq[Parameter], returnType: Type)
 
@@ -29,9 +29,9 @@ object model {
   case object View extends RelationType("View")
   case object Table extends RelationType("Table")
 
-  case class Column(name: String, columnType: Type, nullable: Boolean)
+  case class Column(name: String, columnType: Type, nullable: Boolean, pk: Boolean)
 
-  case class Relation(name: String, namespace: String, mode: RelationType, pkColumns: Seq[Column], restColumns: Seq[Column])
+  case class Relation(name: String, namespace: String, mode: RelationType, columns: Seq[Column])
 
   case class Namespace(name: String, relations: Seq[Relation], procedures: Seq[Procedure])
 

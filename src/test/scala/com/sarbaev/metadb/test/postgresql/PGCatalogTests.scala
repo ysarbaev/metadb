@@ -124,6 +124,23 @@ class PGCatalogTests extends FreeSpec with ShouldMatchers {
       }
     }
 
+    "should retrieve primary key constraints" in new PGSchemaFixture {
+      closeAfter {
+        exec(
+          """
+              create table t1 (a int, b int primary key);
+              create table t2 (a int, b int, c int, primary key(a, b, c));
+              create table t3 (a int);
+              alter table t3 add constraint t3_pk primary key(a);
+          """
+        )
+
+        val constraints = PGCatalog.PGConstraint.primaryKeys(Seq(schemaOid))
+
+        constraints should have size(3)
+      }
+    }
+
     "should retrieve default attributes" in new PGSchemaFixture {
       closeAfter {
 
