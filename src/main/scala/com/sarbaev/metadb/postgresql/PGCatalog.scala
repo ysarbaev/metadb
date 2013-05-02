@@ -185,10 +185,7 @@ object PGCatalog {
       proallargtypes = set.getIntArray("proallargtypes"),
       proargmodes = set.getCharArray("proargmodes"),
       proargnames = set.getStringArray("proargnames"),
-      proargdefaults = null2option(set str "proargdefaults") match {
-        case Some(v) => parseDefault(v)
-        case _ => Nil
-      }
+      proargdefaults = Nil
     )
   }
 
@@ -200,7 +197,7 @@ object PGCatalog {
     def mapper(set: RichResultSet) = PGAttributeDefault(
       adrelid = set int "adrelid",
       adnum = set int "adnum",
-      value = parseDefault(set str "adbin").head
+      value = null //just stub
     )
   }
 

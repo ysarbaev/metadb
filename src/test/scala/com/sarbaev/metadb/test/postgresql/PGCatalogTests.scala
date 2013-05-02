@@ -91,7 +91,7 @@ class PGCatalogTests extends FreeSpec with ShouldMatchers {
           PGProc(-1, "f", -1, 0, false, 2, 0, Oid.INT4, Seq(Oid.INT4, Oid.INT4), Nil, Nil, Seq("a", "b"), Nil)
 
         "create function f(a int, b int default 42) returns int as 'select 1' language sql; " shouldEq
-          PGProc(-1, "f", -1, 0, false, 2, 1, Oid.INT4, Seq(Oid.INT4, Oid.INT4), Nil, Nil, Seq("a", "b"), Seq(PGDefaultValue(23, -1, 0, 4, true, false, 39, None)))
+          PGProc(-1, "f", -1, 0, false, 2, 1, Oid.INT4, Seq(Oid.INT4, Oid.INT4), Nil, Nil, Seq("a", "b"), Nil)
 
         "create function f(int, int) returns int as 'select 1' language sql; " shouldEq
           PGProc(-1, "f", -1, 0, false, 2, 0, Oid.INT4, Seq(Oid.INT4, Oid.INT4), Nil, Nil, Nil, Nil)
