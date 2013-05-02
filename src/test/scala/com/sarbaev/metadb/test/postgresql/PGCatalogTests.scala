@@ -90,8 +90,36 @@ class PGCatalogTests extends FreeSpec with ShouldMatchers {
         "create function f(a int, b int) returns int as 'select 1' language sql; " shouldEq
           PGProc(-1, "f", -1, 0, false, 2, 0, Oid.INT4, Seq(Oid.INT4, Oid.INT4), Nil, Nil, Seq("a", "b"), Nil)
 
-        "create function f(a int, b int default 42) returns int as 'select 1' language sql" shouldEq
+        "create function f(a int, b int default 42) returns int as 'select 1' language sql; " shouldEq
           PGProc(-1, "f", -1, 0, false, 2, 1, Oid.INT4, Seq(Oid.INT4, Oid.INT4), Nil, Nil, Seq("a", "b"), Seq(PGProcDefaultParameter(23, -1, 0, 4, true, false, 39, None)))
+
+        "create function f(int, int) returns int as 'select 1' language sql; " shouldEq
+          PGProc(-1, "f", -1, 0, false, 2, 0, Oid.INT4, Seq(Oid.INT4, Oid.INT4), Nil, Nil, Nil, Nil)
+      }
+    }
+
+    "should retrieve classes" in new PGSchemaFixture {
+      closeAfter {
+
+        exec(
+          "create table t (a int, b text)",
+          "create view v as select * from t"
+        )
+
+        val classes = PGCatalog.classes(Seq(schemaOid))
+
+        classes should have size(2)
+
+      }
+    }
+
+    "should retrieve attributes" in new PGSchemaFixture {
+      closeAfter {
+        exec("create table t (a int, b text, c timestamp, d boolean )")
+
+        val attributes = PGCatalog.attributes(Seq(schemaOid))
+
+        attributes should have size(4)
 
       }
     }

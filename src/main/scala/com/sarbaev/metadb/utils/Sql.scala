@@ -50,8 +50,17 @@ object Sql {
       }
     }
 
-
-
+    def int(name: String) = rs getInt name
+    def str(name: String) = rs getString name
+    def bool(name: String) = rs getBoolean name
+    def char(name: String): Character = {
+      val str = rs getString name
+      if(str != null && str.length > 0){
+        str.charAt(0)
+      }else{
+        null
+      }
+    }
   }
 
 }

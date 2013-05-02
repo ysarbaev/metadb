@@ -3,6 +3,7 @@ package com.sarbaev.metadb.postgresql
 import com.sarbaev.metadb.utils.Sql.ResultSetIterator
 import com.sarbaev.metadb.utils.Sql.RichResultSet
 import java.sql.{Connection, ResultSet}
+import com.sarbaev.metadb.model.Namespace
 
 /**
  * User: yuri
@@ -11,30 +12,16 @@ import java.sql.{Connection, ResultSet}
  */
 object PGCatalog {
 
-  def executeQuery[T](query: String, mapper: ResultSet => T)(implicit connection: java.sql.Connection): Seq[T] = {
+  def executeQuery[T](query: String, mapper: RichResultSet => T)(implicit connection: java.sql.Connection): Seq[T] = {
     val stmt = connection.prepareStatement(query)
     val rs = stmt.executeQuery
 
-    rs.map(mapper).toSeq
+    rs.map(mapper(_)).toSeq
   }
 
-  def inList(values: Seq[Any]) = values.mkString("(\'", "\',\'", "\')") // a,b generates ('a','b')
+  def inList(values: Iterable[Any]) = values.mkString("(\'", "\',\'", "\')")
 
-  def typeQuery(namespaces: Seq[Int]) = s"select oid, t.* from pg_catalog.pg_type t where t.typnamespace in (${inList(namespaces)})"
-
-  def typeMapper(set: ResultSet) =
-    PGType(
-      oid = set.getInt("oid"),
-      typname = set.getString("typname"),
-      typnamespace = set.getInt("typnamespace"),
-      typlen = set.getInt("typlen"),
-      typbyval = set.getBoolean("typbyval"),
-      typtype = set.getString("typtype").charAt(0),
-      typcategory = set.getString("typcategory").charAt(0),
-      typnotnull = set.getBoolean("typnotnull")
-    )
-
-  def types(namespaces: Seq[Int])(implicit connection: java.sql.Connection): Seq[PGType] = executeQuery(typeQuery(namespaces), typeMapper(_))
+  // a,b generates ('a','b')
 
   /**
    * <pre>
@@ -67,10 +54,28 @@ object PGCatalog {
                     typcategory: Char,
                     typnotnull: Boolean)
 
+  def typeQuery(namespaces: Iterable[Int]) = s"select oid, t.* from pg_catalog.pg_type t where t.typnamespace in (${inList(namespaces)})"
+
+  def typeMapper(set: RichResultSet) =
+    PGType(
+      oid = set int "oid",
+      typname = set str "typname",
+      typnamespace = set int "typnamespace",
+      typlen = set int "typlen",
+      typbyval = set bool "typbyval",
+      typtype = set char "typtype",
+      typcategory = set char "typcategory",
+      typnotnull = set bool "typnotnull"
+    )
+
+  def types(namespaces: Iterable[Int])(implicit connection: java.sql.Connection): Seq[PGType] = executeQuery(typeQuery(namespaces), typeMapper)
+
+
   /*
    * Table "pg_catalog.pg_tables"
    */
   case class PGTable(oid: Int, schemaname: String, tablename: String)
+
 
   /**
    * Table "pg_catalog.pg_class".
@@ -79,33 +84,96 @@ object PGCatalog {
    */
   case class PGClass(oid: Int,
                      relname: String,
-                     relnamespace: String,
+                     relnamespace: Int,
                      reltype: Int,
                      reloftype: Int,
                      relkind: Char,
                      relnatts: Int,
-                     relhaspkey: Boolean,
-                     relhassubclass: Boolean)
+                     relhaspkey: Boolean)
 
-  def procQuery(namespaces: Seq[Int]) = s"""
+  def classQuery(namespaces: Iterable[Int]) = s"select oid, t.* from pg_catalog.pg_class t where t.relnamespace in (${inList(namespaces)})"
+
+  def classMapper(set: RichResultSet) = PGClass(
+    oid = set int "oid",
+    relname = set str "relname",
+    relnamespace = set int "relnamespace",
+    reltype = set int "reltype",
+    reloftype = set int "reloftype",
+    relkind = set char "relkind",
+    relnatts = set int "relnatts",
+    relhaspkey = set bool "relhaspkey"
+  )
+
+  def classes(namespaces: Iterable[Int])(implicit connection: Connection) = executeQuery(classQuery(namespaces), classMapper)
+
+  /**
+   * attrelid	oid	pg_class.oid	The table this column belongs to
+   * attname	name	 	The column name
+   * atttypid	oid	pg_type.oid	The data type of this column
+   * attnum	int2	 	The number of the column. Ordinary columns are numbered from 1 up. System columns, such as oid, have (arbitrary) negative numbers.
+   * attnotnull	bool	 	This represents a not-null constraint. It is possible to change this column to enable or disable the constraint.
+   * atthasdef	bool	 	This column has a default value, in which case there will be a corresponding entry in the pg_attrdef catalog that actually defines the value.
+   */
+  case class PGAttribute(attrelid: Int,
+                         attname: String,
+                         atttypid: Int,
+                         attnum: Int,
+                         attnotnull: Boolean,
+                         atthasdef: Boolean)
+
+  def attributeQuery(namespaces: Iterable[Int]) =
+    s"""
+      select a.* from pg_catalog.pg_attribute a, pg_catalog.pg_class c where a.attrelid = c.oid and c.relnamespace in ( ${inList(namespaces)} )
+      and a.attname not in ('tableoid', 'cmax', 'xmax', 'cmin', 'xmin', 'ctid')
+    """
+
+  def attributeMapper(set: RichResultSet) = PGAttribute(
+    attrelid = set int "attrelid",
+    attname = set str "attname",
+    atttypid = set int "atttypid",
+    attnum = set int "attnum",
+    attnotnull = set bool "attnotnull",
+    atthasdef = set bool "atthasdef"
+  )
+
+  def attributes(namespaces: Iterable[Int])(implicit connection: Connection) = executeQuery(attributeQuery(namespaces), attributeMapper)
+
+  /**
+   * Table "pg_catalog.pg_proc"
+   */
+  case class PGProc(oid: Int,
+                    proname: String,
+                    pronamespace: Int,
+                    provariadic: Int,
+                    proretset: Boolean,
+                    pronargs: Int,
+                    pronargdefaults: Int,
+                    prorettype: Int,
+                    proargtypes: Seq[Int],
+                    proallargtypes: Seq[Int],
+                    proargmodes: Seq[Char],
+                    proargnames: Seq[String],
+                    proargdefaults: Seq[PGProcDefaultParameter])
+
+  def procQuery(namespaces: Iterable[Int]) = s"""
     select oid,
       t.proargtypes::integer[] as argtypes,
       t.* from pg_catalog.pg_proc t where t.pronamespace in (${inList(namespaces)})"""
 
-  def procMapper(set: ResultSet) = PGProc(
-    oid = set.getInt("oid"),
-    proname = set.getString("proname"),
-    pronamespace = set.getInt("pronamespace"),
-    provariadic = set.getInt("provariadic"),
-    proretset = set.getBoolean("proretset"),
-    pronargs = set.getInt("pronargs"),
-    pronargdefaults = set.getInt("pronargdefaults"),
-    prorettype = set.getInt("prorettype"),
+  def procMapper(set: RichResultSet) = PGProc(
+    oid = set int "oid",
+    proname = set str "proname",
+    pronamespace = set int "pronamespace",
+    provariadic = set int "provariadic",
+    proretset = set bool "proretset",
+    pronargs = set int "pronargs",
+    pronargdefaults = set int "pronargdefaults",
+    prorettype = set int "prorettype",
     proargtypes = set.getIntArray("argtypes"),
     proallargtypes = set.getIntArray("proallargtypes"),
     proargmodes = set.getCharArray("proargmodes"),
     proargnames = set.getStringArray("proargnames"),
-    proargdefaults = parseProcDefaultParameters(set.getString("proargdefaults"))
+    proargdefaults = parseProcDefaultParameters(set str "proargdefaults")
   )
 
   /**
@@ -149,29 +217,20 @@ object PGCatalog {
 
   def procs(namespaces: Seq[Int])(implicit connection: Connection): Seq[PGProc] = executeQuery(procQuery(namespaces), procMapper)
 
-  /**
-   * Table "pg_catalog.pg_proc"
-   */
-  case class PGProc(oid: Int,
-                    proname: String,
-                    pronamespace: Int,
-                    provariadic: Int,
-                    proretset: Boolean,
-                    pronargs: Int,
-                    pronargdefaults: Int,
-                    prorettype: Int,
-                    proargtypes: Seq[Int],
-                    proallargtypes: Seq[Int],
-                    proargmodes: Seq[Char],
-                    proargnames: Seq[String],
-                    proargdefaults: Seq[PGProcDefaultParameter])
-
-  def namespaceQuery(namespaces: Seq[String]) = s"select oid, t.* from pg_catalog.pg_namespace t where t.nspname in (${inList(namespaces)})"
-
-  def namespaceMapper(set: ResultSet) = PGNamespace(set.getInt("oid"), set.getString("nspname"))
-
-  def namespaces(namespaces: Seq[String])(implicit connection: Connection) = executeQuery(namespaceQuery(namespaces), namespaceMapper)
 
   case class PGNamespace(oid: Int, nspname: String)
 
+  def namespaceQuery(namespaces: Iterable[String]) = s"select oid, t.* from pg_catalog.pg_namespace t where t.nspname in (${inList(namespaces)})"
+
+  def namespaceMapper(set: RichResultSet) = PGNamespace(set int ("oid"), set str ("nspname"))
+
+  def namespaces(namespaces: Iterable[String])(implicit connection: Connection) = executeQuery(namespaceQuery(namespaces), namespaceMapper)
+
+  def toModel(namespaces: Seq[PGNamespace], types: Seq[PGType], procs: Seq[PGProc]): Seq[Namespace] = {
+    val namespaceOid = namespaces.groupBy(_.oid).map(e => e._1 -> e._2.head)
+    val typesOid = types.groupBy(_.oid).map(e => e._1 -> e._2.head)
+    val procsOid = procs.groupBy(_.oid).map(e => e._1 -> e._2.head)
+
+    Nil
+  }
 }
