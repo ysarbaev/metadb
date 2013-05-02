@@ -17,7 +17,7 @@ trait PGSchemaFixture extends PGDBFixture {
   createSchema(schema)
   setSearchPath(schema)
 
-  val schemaOid = PGCatalog.namespaces(Seq(schema)).head.oid
+  val schemaOid = PGCatalog.PGNamespace.list(Seq(schema)).head.oid
 
   def createSchema(schema: String) = exec(s"create schema $schema;")
 

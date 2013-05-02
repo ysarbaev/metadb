@@ -18,7 +18,7 @@ class PGCatalogTests extends FreeSpec with ShouldMatchers {
     "should create and drop a random schema" in new PGSchemaFixture {
       closeAfter {
 
-        val list = PGCatalog.namespaces(Seq(schema))
+        val list = PGCatalog.PGNamespace.list(Seq(schema))
 
         list should have size (1)
         list.head.nspname should equal(schema)
@@ -34,7 +34,7 @@ class PGCatalogTests extends FreeSpec with ShouldMatchers {
           s"create type enum_type_1 as enum ('a', 'b')"
         )
 
-        val types = PGCatalog.types(Seq(schemaOid))
+        val types = PGCatalog.PGType.list(Seq(schemaOid))
 
         types should have size (4)
         //think about array types
@@ -62,11 +62,11 @@ class PGCatalogTests extends FreeSpec with ShouldMatchers {
             createSchema(schema)
             setSearchPath(schema)
 
-            val oid = PGCatalog.namespaces(Seq(schema)).head.oid
+            val oid = PGCatalog.PGNamespace.list(Seq(schema)).head.oid
 
             exec(sql)
 
-            val proc = PGCatalog.procs(Seq(oid)).head
+            val proc = PGCatalog.PGProc.list(Seq(oid)).head
 
             dropSchema(schema)
 
@@ -106,7 +106,7 @@ class PGCatalogTests extends FreeSpec with ShouldMatchers {
           "create view v as select * from t"
         )
 
-        val classes = PGCatalog.classes(Seq(schemaOid))
+        val classes = PGCatalog.PGClass.list(Seq(schemaOid))
 
         classes should have size(2)
 
@@ -117,7 +117,7 @@ class PGCatalogTests extends FreeSpec with ShouldMatchers {
       closeAfter {
         exec("create table t (a int, b text, c timestamp, d boolean )")
 
-        val attributes = PGCatalog.attributes(Seq(schemaOid))
+        val attributes = PGCatalog.PGAttribute.list(Seq(schemaOid))
 
         attributes should have size(4)
 
