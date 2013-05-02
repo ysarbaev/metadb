@@ -3,7 +3,7 @@ package com.sarbaev.metadb.test.postgresql
 import org.scalatest.FreeSpec
 import com.sarbaev.metadb.postgresql.PGCatalog
 import org.scalatest.matchers.ShouldMatchers
-import com.sarbaev.metadb.postgresql.PGCatalog.{PGProcDefaultParameter, PGProc, PGType}
+import com.sarbaev.metadb.postgresql.PGCatalog.{PGDefaultValue, PGProc, PGType}
 import org.postgresql.core.Oid
 
 /**
@@ -91,7 +91,7 @@ class PGCatalogTests extends FreeSpec with ShouldMatchers {
           PGProc(-1, "f", -1, 0, false, 2, 0, Oid.INT4, Seq(Oid.INT4, Oid.INT4), Nil, Nil, Seq("a", "b"), Nil)
 
         "create function f(a int, b int default 42) returns int as 'select 1' language sql; " shouldEq
-          PGProc(-1, "f", -1, 0, false, 2, 1, Oid.INT4, Seq(Oid.INT4, Oid.INT4), Nil, Nil, Seq("a", "b"), Seq(PGProcDefaultParameter(23, -1, 0, 4, true, false, 39, None)))
+          PGProc(-1, "f", -1, 0, false, 2, 1, Oid.INT4, Seq(Oid.INT4, Oid.INT4), Nil, Nil, Seq("a", "b"), Seq(PGDefaultValue(23, -1, 0, 4, true, false, 39, None)))
 
         "create function f(int, int) returns int as 'select 1' language sql; " shouldEq
           PGProc(-1, "f", -1, 0, false, 2, 0, Oid.INT4, Seq(Oid.INT4, Oid.INT4), Nil, Nil, Nil, Nil)
@@ -131,12 +131,12 @@ class PGCatalogTests extends FreeSpec with ShouldMatchers {
           | {CONST :consttype 25 :consttypmod -1 :constcollid 100 :constlen -1 :constbyval false :constisnull false :location 52 :constvalue 4 [ 16 0 0 0 ]}
           | {CONST :consttype 25 :consttypmod -1 :constcollid 100 :constlen -1 :constbyval false :constisnull true :location 71 :constvalue <>})""".stripMargin
 
-      val actual = PGCatalog.parseProcDefaultParameters(params)
+      val actual = PGCatalog.parseDefault(params)
 
       val expected = Seq(
-        PGProcDefaultParameter(23,-1,0,4,true, false, 33, None),
-        PGProcDefaultParameter(25,-1,100,-1,false, false, 52, None),
-        PGProcDefaultParameter(25,-1,100,-1,false, true, 71, None)
+        PGDefaultValue(23,-1,0,4,true, false, 33, None),
+        PGDefaultValue(25,-1,100,-1,false, false, 52, None),
+        PGDefaultValue(25,-1,100,-1,false, true, 71, None)
       )
 
       actual shouldBe expected

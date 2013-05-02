@@ -153,7 +153,7 @@ object PGCatalog {
                     proallargtypes: Seq[Int],
                     proargmodes: Seq[Char],
                     proargnames: Seq[String],
-                    proargdefaults: Seq[PGProcDefaultParameter])
+                    proargdefaults: Seq[PGDefaultValue])
 
   def procQuery(namespaces: Iterable[Int]) = s"""
     select oid,
@@ -173,19 +173,19 @@ object PGCatalog {
     proallargtypes = set.getIntArray("proallargtypes"),
     proargmodes = set.getCharArray("proargmodes"),
     proargnames = set.getStringArray("proargnames"),
-    proargdefaults = parseProcDefaultParameters(set str "proargdefaults")
+    proargdefaults = parseDefault(set str "proargdefaults")
   )
 
   /**
    * ({CONST :consttype 23 :consttypmod -1 :constcollid 0 :constlen 4 :constbyval true :constisnull true :location 35 :constvalue <>}
    * {CONST :consttype 23 :consttypmod -1 :constcollid 0 :constlen 4 :constbyval true :constisnull false :location 55 :constvalue 4 [ 0 1 0 0 0 0 0 0 ]})
    */
-  case class PGProcDefaultParameter(consttype: Int, consttypmod: Int, constcollid: Int, constlen: Int, constbyval: Boolean, constisnull: Boolean, location: Int, constvalue: Any)
+  case class PGDefaultValue(consttype: Int, consttypmod: Int, constcollid: Int, constlen: Int, constbyval: Boolean, constisnull: Boolean, location: Int, constvalue: Any)
 
-  def parseProcDefaultParameters0(params: List[String]): List[PGProcDefaultParameter] = params match {
+  def parseDefault0(params: List[String]): List[PGDefaultValue] = params match {
     case Nil => Nil
     case "consttype" :: consttype :: "consttypmod" :: consttypmod :: "constcollid" :: constcollid :: "constlen" :: constlen :: "constbyval" :: constbyval :: "constisnull" :: constisnull :: "location" :: location :: "constvalue" :: constvalue :: tail =>
-      PGProcDefaultParameter(
+      PGDefaultValue(
         consttype.toInt,
         consttypmod.toInt,
         constcollid.toInt,
@@ -194,11 +194,11 @@ object PGCatalog {
         constisnull.toBoolean,
         location.toInt,
         None
-      ) :: parseProcDefaultParameters0(tail)
+      ) :: parseDefault0(tail)
     case _ => Nil
   }
 
-  def parseProcDefaultParameters(params: String): Seq[PGProcDefaultParameter] = {
+  def parseDefault(params: String): Seq[PGDefaultValue] = {
     if (params == null) Nil
     else {
       val p = params.
@@ -210,7 +210,7 @@ object PGCatalog {
         flatMap(_.split("\\s", 2)).
         toList
 
-      parseProcDefaultParameters0(p)
+      parseDefault0(p)
     }
 
   }
