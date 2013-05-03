@@ -9,7 +9,7 @@ import java.sql.Types
  */
 object model {
 
-  case class Type(javaBaseType: Class[Any], sqlBaseType: Int, isArray: Boolean)
+  case class Type(sqlBaseType: Int, isArray: Boolean)
 
   class ParameterMode(mode: String){
     override def toString: String = mode

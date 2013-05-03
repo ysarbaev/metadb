@@ -40,8 +40,8 @@ class PGCatalogTests extends FreeSpec with ShouldMatchers {
         //think about array types
 
         val fTypes = types.collect {
-          case t@PGType(_, "table_type_1", _, _, _, 'c', 'C', _) => t
-          case t@PGType(_, "enum_type_1", _, _, _, 'e', 'E', _) => t
+          case t@PGType(_, "table_type_1", _, _, _, 'c', 'C', relid, 0, _,  _) if relid > 0 => t
+          case t@PGType(_, "enum_type_1", _, _, _, 'e', 'E',0, 0, _, _) => t
         }
 
         fTypes should have size (2)

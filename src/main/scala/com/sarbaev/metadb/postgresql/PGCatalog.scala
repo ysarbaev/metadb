@@ -1,9 +1,14 @@
 package com.sarbaev.metadb.postgresql
 
 import com.sarbaev.metadb.utils.Sql.ResultSetIterator
+import java.sql.{Types, Connection}
+import com.sarbaev.metadb.model._
 import com.sarbaev.metadb.utils.Sql.RichResultSet
-import java.sql.{Connection, ResultSet}
-import com.sarbaev.metadb.model.{Column, Table, Relation, Namespace}
+import scala.Some
+import com.sarbaev.metadb.model.Column
+import com.sarbaev.metadb.model.Namespace
+import com.sarbaev.metadb.model.Relation
+import org.postgresql.core.Oid
 
 /**
  * User: yuri
@@ -54,14 +59,17 @@ object PGCatalog {
    * X	unknown type
    * </pre>
    */
-  case class PGType(oid: Int,
-                    typname: String,
-                    typnamespace: Int,
-                    typlen: Int,
-                    typbyval: Boolean,
-                    typtype: Char,
-                    typcategory: Char,
-                    typnotnull: Boolean)
+  case class PGType(oid          : Int,
+                    typname      : String,
+                    typnamespace : Int,
+                    typlen       : Int,
+                    typbyval     : Boolean,
+                    typtype      : Char,
+                    typcategory  : Char,
+                    typrelid     : Int,
+                    typelem      : Int,
+                    typarray     : Int,
+                    typnotnull   : Boolean)
 
   object PGType extends PGCatalogEx[PGType, Int] {
 
@@ -69,14 +77,17 @@ object PGCatalog {
 
     def mapper(set: RichResultSet) =
       PGType(
-        oid = set int "oid",
-        typname = set str "typname",
-        typnamespace = set int "typnamespace",
-        typlen = set int "typlen",
-        typbyval = set bool "typbyval",
-        typtype = set char "typtype",
-        typcategory = set char "typcategory",
-        typnotnull = set bool "typnotnull"
+        oid          = set int  "oid",
+        typname      = set str  "typname",
+        typnamespace = set int  "typnamespace",
+        typlen       = set int  "typlen",
+        typbyval     = set bool "typbyval",
+        typtype      = set char "typtype",
+        typcategory  = set char "typcategory",
+        typrelid     = set int  "typrelid",
+        typelem      = set int  "typelem",
+        typarray     = set int  "typarray",
+        typnotnull   = set bool "typnotnull"
       )
   }
 
@@ -91,14 +102,14 @@ object PGCatalog {
    *
    * relkind: r = ordinary table, i = index, S = sequence, v = view, c = composite type, t = TOAST table, f = foreign table
    */
-  case class PGClass(oid: Int,
-                     relname: String,
-                     relnamespace: Int,
-                     reltype: Int,
-                     reloftype: Int,
-                     relkind: Char,
-                     relnatts: Int,
-                     relhaspkey: Boolean)
+  case class PGClass(oid          : Int,
+                     relname      : String,
+                     relnamespace : Int,
+                     reltype      : Int,
+                     reloftype    : Int,
+                     relkind      : Char,
+                     relnatts     : Int,
+                     relhaspkey   : Boolean)
 
 
   object PGClass extends PGCatalogEx[PGClass, Int] {
@@ -106,14 +117,14 @@ object PGCatalog {
     def query(namespaces: Iterable[Int]) = s"select oid, t.* from pg_catalog.pg_class t where t.relnamespace in (${inList(namespaces)})"
 
     def mapper(set: RichResultSet) = PGClass(
-      oid = set int "oid",
-      relname = set str "relname",
-      relnamespace = set int "relnamespace",
-      reltype = set int "reltype",
-      reloftype = set int "reloftype",
-      relkind = set char "relkind",
-      relnatts = set int "relnatts",
-      relhaspkey = set bool "relhaspkey"
+      oid          = set int  "oid",
+      relname      = set str  "relname",
+      relnamespace = set int  "relnamespace",
+      reltype      = set int  "reltype",
+      reloftype    = set int  "reloftype",
+      relkind      = set char "relkind",
+      relnatts     = set int  "relnatts",
+      relhaspkey   = set bool "relhaspkey"
     )
   }
 
@@ -125,12 +136,12 @@ object PGCatalog {
    * attnotnull	bool	 	This represents a not-null constraint. It is possible to change this column to enable or disable the constraint.
    * atthasdef	bool	 	This column has a default value, in which case there will be a corresponding entry in the pg_attrdef catalog that actually defines the value.
    */
-  case class PGAttribute(attrelid: Int,
-                         attname: String,
-                         atttypid: Int,
-                         attnum: Int,
-                         attnotnull: Boolean,
-                         atthasdef: Boolean)
+  case class PGAttribute(attrelid   : Int,
+                         attname    : String,
+                         atttypid   : Int,
+                         attnum     : Int,
+                         attnotnull : Boolean,
+                         atthasdef  : Boolean)
 
   object PGAttribute extends PGCatalogEx[PGAttribute, Int] {
 
@@ -141,12 +152,12 @@ object PGCatalog {
     """
 
     def mapper(set: RichResultSet) = PGAttribute(
-      attrelid = set int "attrelid",
-      attname = set str "attname",
-      atttypid = set int "atttypid",
-      attnum = set int "attnum",
+      attrelid   = set int  "attrelid",
+      attname    = set str  "attname",
+      atttypid   = set int  "atttypid",
+      attnum     = set int  "attnum",
       attnotnull = set bool "attnotnull",
-      atthasdef = set bool "atthasdef"
+      atthasdef  = set bool "atthasdef"
     )
 
   }
@@ -155,34 +166,36 @@ object PGCatalog {
 
   object PGConstraint extends PGCatalogEx[PGConstraint, Int] {
     def mapper(set: RichResultSet): PGConstraint = PGConstraint(
-      conname = set str "conname",
-      connamespace = set int "connamespace",
-      contype = set char "contype",
-      conrelid = set int "conrelid",
-      conkey = set intArr "conkey"
+      conname      = set str    "conname",
+      connamespace = set int    "connamespace",
+      contype      = set char   "contype",
+      conrelid     = set int    "conrelid",
+      conkey       = set intArr "conkey"
     )
 
     def query(namespaces: Iterable[Int]): String = s"select * from pg_catalog.pg_constraint where c.connamespace in (${inList(namespaces)})"
+
     def primaryKeysQuery(namespaces: Iterable[Int]): String = s"select * from pg_catalog.pg_constraint where connamespace in (${inList(namespaces)}) and contype = 'p'"
+
     def primaryKeys(namespaces: Iterable[Int])(implicit connection: Connection): Seq[PGConstraint] = exec(primaryKeysQuery(namespaces), mapper)
   }
 
   /**
    * Table "pg_catalog.pg_proc"
    */
-  case class PGProc(oid: Int,
-                    proname: String,
-                    pronamespace: Int,
-                    provariadic: Int,
-                    proretset: Boolean,
-                    pronargs: Int,
-                    pronargdefaults: Int,
-                    prorettype: Int,
-                    proargtypes: Seq[Int],
-                    proallargtypes: Seq[Int],
-                    proargmodes: Seq[Char],
-                    proargnames: Seq[String],
-                    proargdefaults: Seq[PGDefaultValue])
+  case class PGProc(oid             : Int,
+                    proname         : String,
+                    pronamespace    : Int,
+                    provariadic     : Int,
+                    proretset       : Boolean,
+                    pronargs        : Int,
+                    pronargdefaults : Int,
+                    prorettype      : Int,
+                    proargtypes     : Seq[Int],
+                    proallargtypes  : Seq[Int],
+                    proargmodes     : Seq[Char],
+                    proargnames     : Seq[String],
+                    proargdefaults  : Seq[PGDefaultValue])
 
   object PGProc extends PGCatalogEx[PGProc, Int] {
 
@@ -192,19 +205,19 @@ object PGCatalog {
       t.* from pg_catalog.pg_proc t where t.pronamespace in (${inList(namespaces)})"""
 
     def mapper(set: RichResultSet) = PGProc(
-      oid = set int "oid",
-      proname = set str "proname",
-      pronamespace = set int "pronamespace",
-      provariadic = set int "provariadic",
-      proretset = set bool "proretset",
-      pronargs = set int "pronargs",
-      pronargdefaults = set int "pronargdefaults",
-      prorettype = set int "prorettype",
-      proargtypes = set intArr "argtypes",
-      proallargtypes = set intArr "proallargtypes",
-      proargmodes = set charArr "proargmodes",
-      proargnames = set strArr "proargnames",
-      proargdefaults = Nil
+      oid             = set int     "oid",
+      proname         = set str     "proname",
+      pronamespace    = set int     "pronamespace",
+      provariadic     = set int     "provariadic",
+      proretset       = set bool    "proretset",
+      pronargs        = set int     "pronargs",
+      pronargdefaults = set int     "pronargdefaults",
+      prorettype      = set int     "prorettype",
+      proargtypes     = set intArr  "argtypes",
+      proallargtypes  = set intArr  "proallargtypes",
+      proargmodes     = set charArr "proargmodes",
+      proargnames     = set strArr  "proargnames",
+      proargdefaults  = Nil
     )
   }
 
@@ -215,8 +228,8 @@ object PGCatalog {
 
     def mapper(set: RichResultSet) = PGAttributeDefault(
       adrelid = set int "adrelid",
-      adnum = set int "adnum",
-      value = null //just stub
+      adnum   = set int "adnum",
+      value   = null //just stub
     )
   }
 
@@ -262,49 +275,85 @@ object PGCatalog {
 
   }
 
+  val POSTGRESQL_TO_SQL_TYPES = Map(
+    Oid.BIT         -> Types.BIT,
+    Oid.BOOL        -> Types.BOOLEAN,
+    Oid.BPCHAR      -> Types.VARCHAR,
+    Oid.BYTEA       -> Types.BLOB,
+    Oid.CHAR        -> Types.CHAR,
+    Oid.DATE        -> Types.DATE,
+    Oid.FLOAT4      -> Types.FLOAT,
+    Oid.FLOAT8      -> Types.DOUBLE,
+    Oid.INT2        -> Types.SMALLINT,
+    Oid.INT4        -> Types.INTEGER,
+    Oid.INT8        -> Types.BIGINT,
+    Oid.INTERVAL    -> Types.OTHER,
+    Oid.MONEY       -> Types.DECIMAL,
+    Oid.NAME        -> Types.VARCHAR,
+    Oid.NUMERIC     -> Types.NUMERIC,
+    Oid.OID         -> Types.INTEGER,
+    Oid.TEXT        -> Types.VARCHAR,
+    Oid.TIME        -> Types.TIME,
+    Oid.TIMESTAMP   -> Types.TIMESTAMP,
+    Oid.TIMESTAMPTZ -> Types.TIMESTAMP,
+    Oid.TIMETZ      -> Types.TIME,
+    Oid.UNSPECIFIED -> Types.OTHER,
+    Oid.UUID        -> Types.VARCHAR,
+    Oid.VARBIT      -> Types.VARBINARY,
+    Oid.VARCHAR     -> Types.VARCHAR,
+    Oid.VOID        -> Types.OTHER,
+    Oid.XML         -> Types.SQLXML
+  )
 
-  def toModel(namespaces: Seq[PGNamespace],
-              types: Seq[PGType],
-              classes: Seq[PGClass],
-              attributes: Seq[PGAttribute],
-              procs: Seq[PGProc],
-              constraints: Seq[PGConstraint]): Seq[Namespace] = {
+  def toModel(namespaces  : Seq[PGNamespace],
+              types       : Seq[PGType],
+              classes     : Seq[PGClass],
+              attributes  : Seq[PGAttribute],
+              procs       : Seq[PGProc],
+              constraints : Seq[PGConstraint]): Seq[Namespace] = {
 
-    val namespacesById = namespaces.groupBy(_.oid).map(e => e._1 -> e._2.head)
-    val typesById = types.groupBy(_.oid).map(e => e._1 -> e._2.head)
-    val classesById = classes.groupBy(_.oid).map(e => e._1 -> e._2.head)
-    val attributesByClass = attributes.groupBy(_.attrelid).map(e => e._1 -> e._2.sortBy(_.attnum))
-    val classesByNamespace = classes.groupBy(_.relnamespace)
+    val namespacesById         = namespaces.groupBy(_.oid).map(e => e._1 -> e._2.head)
+    val typesById              = types.groupBy(_.oid).map(e => e._1 -> e._2.head)
+    val classesById            = classes.groupBy(_.oid).map(e => e._1 -> e._2.head)
+    val attributesByClass      = attributes.groupBy(_.attrelid).map(e => e._1 -> e._2.sortBy(_.attnum))
+    val classesByNamespace     = classes.groupBy(_.relnamespace)
     val constraintsByRelations = constraints.groupBy(_.conrelid)
 
-    val result = namespaces.map { namespace =>
+    val result = namespaces.map {
+      namespace =>
 
-      val relations = classesByNamespace(namespace.oid) collect {
+        val relations = classesByNamespace(namespace.oid) collect {
 
-        case PGClass(relid, relname, _, reltype, reltypeof, 'r', relnatts, relhaspkey) => {
+          case PGClass(relid, relname, _, reltype, reltypeof, 'r', relnatts, relhaspkey) => {
 
-          val cons = constraintsByRelations.getOrElse(relid, Nil)
+            val cons = constraintsByRelations.getOrElse(relid, Nil)
 
-          val columns = attributesByClass(relid) map { attr =>
+            val columns = attributesByClass(relid) map {
+              attr =>
 
-            val isPk = cons.find(_.conkey.contains(attr.attnum)).isDefined
+                val isPk = cons.find(_.conkey.contains(attr.attnum)).isDefined
 
-            //TODO: convert type
-            Column(attr.attname, null, ! attr.attnotnull, isPk)
+                val nullable = !attr.attnotnull
+
+                val pgType = typesById(attr.atttypid)
+
+                val typ = null; //Type()
+
+                //TODO: convert type
+                Column(attr.attname, typ, nullable, isPk)
+            }
+
+            Relation(relname, namespace.nspname, Table, columns)
           }
 
-          Relation(relname, namespace.nspname, Table, columns)
-        }
+          case PGClass(relid, relname, _, reltype, reltypeof, 'v', relnatts, relhaspkey) => {
 
-        case PGClass(relid, relname, _, reltype, reltypeof, 'v', relnatts, relhaspkey) => {
-
+          }
         }
-      }
 
     }
 
 
     Nil
   }
-
 }
