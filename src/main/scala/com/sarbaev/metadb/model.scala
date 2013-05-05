@@ -9,7 +9,8 @@ import java.sql.Types
  */
 object model {
 
-  case class Type(sqlBaseType: Int, isArray: Boolean)
+  case class Attribute(name: Option[String], typ: Type, nullable: Boolean)
+  case class Type(name: Option[String], namespace: String, sqlBaseType: Option[Int], isArray: Boolean, attributes: Seq[Attribute])
 
   class ParameterMode(mode: String){
     override def toString: String = mode
@@ -29,9 +30,7 @@ object model {
   case object View extends RelationType("View")
   case object Table extends RelationType("Table")
 
-  case class Column(name: String, columnType: Type, nullable: Boolean, pk: Boolean)
-
-  case class Relation(name: String, namespace: String, mode: RelationType, columns: Seq[Column])
+  case class Relation(name: String, namespace: String, relationType: RelationType, typ: Type, pk: Seq[Attribute], unique: Map[String, Seq[Attribute]])
 
   case class Namespace(name: String, relations: Seq[Relation], procedures: Seq[Procedure])
 

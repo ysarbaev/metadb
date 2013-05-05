@@ -5,9 +5,7 @@ import java.sql.{Types, Connection}
 import com.sarbaev.metadb.model._
 import com.sarbaev.metadb.utils.Sql.RichResultSet
 import scala.Some
-import com.sarbaev.metadb.model.Column
 import com.sarbaev.metadb.model.Namespace
-import com.sarbaev.metadb.model.Relation
 import org.postgresql.core.Oid
 
 /**
@@ -335,13 +333,15 @@ object PGCatalog {
 
                 val pgType = typesById(attr.atttypid)
 
+                val modelType: Type = pgType match {
+                  case t@PGType(_, _, _, _, 'b', 'A', _, typelem, 0, _) => Type(None, namespace.nspname, POSTGRESQL_TO_SQL_TYPES.get(typelem), true, Seq())
+//                  case t@PGType()
+                }
+
                 val typ = null; //Type()
 
-                //TODO: convert type
-                Column(attr.attname, typ, nullable, isPk)
             }
 
-            Relation(relname, namespace.nspname, Table, columns)
           }
 
           case PGClass(relid, relname, _, reltype, reltypeof, 'v', relnatts, relhaspkey) => {
