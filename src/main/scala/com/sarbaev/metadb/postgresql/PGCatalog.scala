@@ -17,8 +17,6 @@ object PGCatalog {
 
   def inList(values: Iterable[Any]) = values.mkString("(\'", "\',\'", "\')")
 
-  def null2option[T](v: T): Option[T] = if (v == null) None else Some(v)
-
   trait PGCatalogEx[T, K] {
     def query(namespaces: Iterable[K]): String
 
