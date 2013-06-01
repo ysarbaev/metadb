@@ -1,27 +1,26 @@
 package com.sarbaev.metadb.test.postgresql
 
-import org.scalatest.FreeSpec
 import com.sarbaev.metadb.postgresql.PGCatalog
-import org.scalatest.matchers.ShouldMatchers
 import com.sarbaev.metadb.postgresql.PGCatalog.{PGDefaultValue, PGProc, PGType}
 import org.postgresql.core.Oid
+import com.sarbaev.metadb.test.Spec
 
 /**
  * User: yuri
  * Date: 4/14/13
  * Time: 5:36 PM 
  */
-class PGCatalogTests extends FreeSpec with ShouldMatchers {
-
-  "PGCatalog" - {
+class PGCatalogTests extends Spec {
 
     "should create and drop a random schema" in new PGSchemaFixture {
       closeAfter {
 
+
         val list = PGCatalog.PGNamespace.list(Seq(schema))
 
-        list should have size (1)
-        list.head.nspname should equal(schema)
+
+        assert(list.size == 1)
+        assert(list.head.nspname == schema)
 
       }
     }
@@ -36,7 +35,7 @@ class PGCatalogTests extends FreeSpec with ShouldMatchers {
 
         val types = PGCatalog.PGType.list(Seq(schemaOid))
 
-        types should have size (4)
+        assert(types.size == 4)
         //think about array types
 
         val fTypes = types.collect {
@@ -44,7 +43,7 @@ class PGCatalogTests extends FreeSpec with ShouldMatchers {
           case t@PGType(_, "enum_type_1", _, _, 'e', 'E',0, 0, _, _) => t
         }
 
-        fTypes should have size (2)
+        assert(fTypes.size == 2)
 
       }
     }
@@ -75,9 +74,7 @@ class PGCatalogTests extends FreeSpec with ShouldMatchers {
 
           def shouldEq(expected: PGProc) = {
             val it = proc(sql)
-            withClue(sql) {
-              it shouldBe (expected.copy(oid = it.oid, pronamespace = it.pronamespace))
-            }
+              assert(it == (expected.copy(oid = it.oid, pronamespace = it.pronamespace)))
           }
         }
 
@@ -108,7 +105,7 @@ class PGCatalogTests extends FreeSpec with ShouldMatchers {
 
         val classes = PGCatalog.PGClass.list(Seq(schemaOid))
 
-        classes should have size (2)
+        assert(classes.size == 2)
 
       }
     }
@@ -119,7 +116,7 @@ class PGCatalogTests extends FreeSpec with ShouldMatchers {
 
         val attributes = PGCatalog.PGAttribute.list(Seq(schemaOid))
 
-        attributes should have size (4)
+        assert(attributes.size == 4)
 
       }
     }
@@ -137,7 +134,7 @@ class PGCatalogTests extends FreeSpec with ShouldMatchers {
 
         val constraints = PGCatalog.PGConstraint.primaryKeys(Seq(schemaOid))
 
-        constraints should have size(3)
+        assert(constraints.size == 3)
       }
     }
 
@@ -148,11 +145,11 @@ class PGCatalogTests extends FreeSpec with ShouldMatchers {
 
         val defaultAttributes = PGCatalog.PGAttributeDefault.list(Seq(schemaOid))
 
-        defaultAttributes should have size(2)
+        assert(defaultAttributes.size == 2)
       }
     }
 
-    "should parse default parameters" in {
+    "should parse default parameters" in new PGSchemaFixture {
 
       val params =
         """({CONST :consttype 23 :consttypmod -1 :constcollid 0 :constlen 4 :constbyval true :constisnull false :location 33 :constvalue 4 [ 10 0 0 0 0 0 0 0 ]}
@@ -167,8 +164,7 @@ class PGCatalogTests extends FreeSpec with ShouldMatchers {
         PGDefaultValue(25, -1, 100, -1, false, true, 71, None)
       )
 
-      actual shouldBe expected
+      assert(actual == expected)
 
     }
-  }
 }
