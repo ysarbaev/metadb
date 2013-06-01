@@ -1,6 +1,5 @@
 package com.sarbaev.metadb.test
 
-import org.scalatools.testing._
 import com.sarbaev.metadb.test.postgresql.{PGExamples, PGCatalogTests}
 
 /**

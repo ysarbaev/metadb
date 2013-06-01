@@ -8,7 +8,7 @@ object BuildSettings {
       organization := "com.sarbaev",
       version := "0.1",
       scalacOptions ++= Seq(),
-      scalaVersion := "2.10.1",
+      scalaVersion := "2.11.0-M3",
 
       org.sbtidea.SbtIdeaPlugin.addGeneratedClasses := true,
       org.sbtidea.SbtIdeaPlugin.includeScalaFacet := true,
@@ -18,7 +18,7 @@ object BuildSettings {
       scalacOptions ++= Seq("-feature"),
 
       libraryDependencies ++= Seq(
-        "org.scala-lang" % "scala-reflect" % "2.10.1",
+        "org.scala-lang" % "scala-reflect" % "2.11.0-M3",
 
         "postgresql" % "postgresql" % "9.1-901.jdbc4"
       )
